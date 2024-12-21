@@ -1,6 +1,4 @@
-!https://cdn-images-1.medium.com/max/880/1*H6I0fskmwdwhDGKPd4BmXg.jpeg
-
-**Abstraction Using EIP-4337**
+# Abstraction Using EIP-4337
 
 In 2021, Stefan Thomas lost access to $220 million worth of Bitcoin because he couldn’t remember the password to his hardware wallet. This incident highlights a common vulnerability with traditional accounts that rely entirely on private keys. Ethereum accounts, known as Externally Owned Accounts (EOAs), are one such example. These accounts depend entirely on a private key to sign transactions. If you lose access to your private key, your funds and assets become irretrievably locked. This lack of flexibility in account management is a significant barrier to the mass adoption of blockchain technology.
 
@@ -123,6 +121,8 @@ Ensure that your Yarn version is 1.22.22 or later by running
 yarn --version
 ```
 
+---
+
 ### **Cloning the Repository**
 
 Clone the Ethereum Foundation’s implementation of **account abstraction**:
@@ -138,6 +138,7 @@ cd account-abstraction
 
 yarn install
 ```
+---
 
 ### Configuring the Environment
 
@@ -160,6 +161,7 @@ Install the necessary environment management library:
 ```
 yarn add dotenv
 ```
+---
 
 ### Deploying and Interacting with SimpleAccount.sol
 
@@ -177,9 +179,7 @@ import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "../core/BaseAccount.sol";
 import "../core/Helpers.sol";
 import "./callback/TokenCallbackHandler.sol";
-```
 
-```
 /**
   * minimal account.
   *  this is sample minimal account.
@@ -188,50 +188,34 @@ import "./callback/TokenCallbackHandler.sol";
   */
 contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, Initializable {
     address public owner;
-```
 
-```
     IEntryPoint private immutable _entryPoint;
-```
 
-```
     event SimpleAccountInitialized(IEntryPoint indexed entryPoint, address indexed owner);
-```
 
-```
     modifier onlyOwner() {
         _onlyOwner();
         _;
     }
-```
 
-```
     /// @inheritdoc BaseAccount
     function entryPoint() public view virtual override returns (IEntryPoint) {
         return _entryPoint;
     }
-```
 
-```
     // solhint-disable-next-line no-empty-blocks
     receive() external payable {}
-```
 
-```
     constructor(IEntryPoint anEntryPoint) {
         _entryPoint = anEntryPoint;
         _disableInitializers();
     }
-```
 
-```
     function _onlyOwner() internal view {
         //directly from EOA owner, or through the account itself (which gets redirected through execute())
         require(msg.sender == owner || msg.sender == address(this), "only owner");
     }
-```
 
-```
     /**
      * execute a transaction (called directly from owner, or by entryPoint)
      * @param dest destination address to call
@@ -242,9 +226,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
         _requireFromEntryPointOrOwner();
         _call(dest, value, func);
     }
-```
 
-```
     /**
      * execute a sequence of transactions
      * @dev to reduce gas consumption for trivial case (no value), use a zero-length array to mean zero value
@@ -265,9 +247,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
             }
         }
     }
-```
 
-```
     /**
      * @dev The _entryPoint member is immutable, to reduce gas consumption.  To upgrade EntryPoint,
      * a new implementation of SimpleAccount must be deployed with the new EntryPoint address, then upgrading
@@ -277,23 +257,17 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
     function initialize(address anOwner) public virtual initializer {
         _initialize(anOwner);
     }
-```
 
-```
     function _initialize(address anOwner) internal virtual {
         owner = anOwner;
         emit SimpleAccountInitialized(_entryPoint, owner);
     }
-```
 
-```
     // Require the function call went through EntryPoint or owner
     function _requireFromEntryPointOrOwner() internal view {
         require(msg.sender == address(entryPoint()) || msg.sender == owner, "account: not Owner or EntryPoint");
     }
-```
 
-```
     /// implement template method of BaseAccount
     function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
     internal override virtual returns (uint256 validationData) {
@@ -302,9 +276,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
             return SIG_VALIDATION_FAILED;
         return SIG_VALIDATION_SUCCESS;
     }
-```
 
-```
     function _call(address target, uint256 value, bytes memory data) internal {
         (bool success, bytes memory result) = target.call{value: value}(data);
         if (!success) {
@@ -313,27 +285,21 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
             }
         }
     }
-```
 
-```
     /**
      * check current account deposit in the entryPoint
      */
     function getDeposit() public view returns (uint256) {
         return entryPoint().balanceOf(address(this));
     }
-```
 
-```
     /**
      * deposit more funds for this account in the entryPoint
      */
     function addDeposit() public payable {
         entryPoint().depositTo{value: msg.value}(address(this));
     }
-```
 
-```
     /**
      * withdraw value from the account's deposit
      * @param withdrawAddress target to send to
@@ -342,9 +308,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
     function withdrawDepositTo(address payable withdrawAddress, uint256 amount) public onlyOwner {
         entryPoint().withdrawTo(withdrawAddress, amount);
     }
-```
 
-```
     function _authorizeUpgrade(address newImplementation) internal view override {
         (newImplementation);
         _onlyOwner();
@@ -357,6 +321,8 @@ The `SimpleAccount` contract is a basic Ethereum wallet designed to handle trans
 The contract also allows the owner to deposit and withdraw funds to and from the **EntryPoint** with the `addDeposit` and `withdrawDepositTo` functions, making it easy to manage the funds required for transactions.
 
 The contract uses signature validation to ensure that only the owner can authorize transactions. Additionally, it is upgradeable, allowing the contract’s functionality to be updated in the future without losing control or security.
+
+---
 
 ### EntryPoint.sol
 
@@ -443,6 +409,8 @@ The `EntryPoint.sol` can be found in the `contracts/core/` directory. Here is a 
 
 **`_executeUserOp:`** This function is responsible for executing a user operation. It processes a UserOp by first preparing the relevant data, then calling an internal method to handle the operation, and finally managing errors that may occur during execution.
 
+---
+
 ### Deploy the Contract
 
 We will be deploying this to Sepolia. Before we can deploy this contract, let’s make some changes to the Repo.
@@ -482,6 +450,8 @@ const config: HardhatUserConfig = {
 export default config;
 ```
 
+---
+
 Now, move to the `deploy` directory. It contains two files: `1_deploy_entrypoint.ts` and `2_deploy_SimpleAccountFactory.ts`. We will deploy the `EntryPoint` contract and use it address to deploy the `SimpleAccountFactory`.
 
 First, the `EntryPoint` contract is deployed using the `1_deploy_entrypoint.ts` script. Remember the`EntryPoint` handles both **Validation** and **Execution** of `UserOperation` objects.
@@ -489,6 +459,8 @@ First, the `EntryPoint` contract is deployed using the `1_deploy_entrypoint.ts` 
 Next, the `SimpleAccountFactory` contract is deployed using the `2_deploy_SimpleAccountFactory.ts` script. This contract acts as a "factory" that creates individual Simple Account contracts. The factory uses a deterministic process (such as the `CREATE2` opcode) to deploy these accounts, meaning the address of each account can be predicted before deployment.
 
 Replace all contents with the following code snippets.
+
+---
 
 **`*1_deploy_entrypoint.ts*`**
 
@@ -513,6 +485,7 @@ const deployEntryPoint: DeployFunction = async function (hre: HardhatRuntimeEnvi
 export default deployEntryPoint;
 deployEntryPoint.tags = ['EntryPoint'];
 ```
+---
 
 **`*2_deploy_SimpleAccountFactory.ts*`**
 
@@ -556,6 +529,8 @@ npx hardhat deploy --network sepolia --tags SimpleAccountFactory
 ```
 
 Now that we have deployed the contracts, you’re all set!
+
+---
 
 ### Interact with the Contract
 
@@ -637,6 +612,7 @@ Run this script to interact with the contract:
 ```
 npx hardhat run scripts/interact.ts --network sepolia
 ```
+---
 
 ### Conclusion
 
@@ -649,6 +625,8 @@ Ready to take things up a notch? Here are some ideas:
 - **Gasless Transactions**: Let users interact with your dApp without needing ETH for gas.
 - **Multi-Sig Wallets**: Implement wallets that require multiple signatures for added security. These are perfect for groups or shared accounts.
 - **Custom Authentication**: Think outside the box! Explore social logins, biometric data, or hardware wallets to give users new ways to connect.
+
+---
 
 ### Read On
 
